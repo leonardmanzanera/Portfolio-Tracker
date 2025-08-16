@@ -18,12 +18,15 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAddTransacti
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.symbol && formData.quantity && formData.price) {
+    const isSymbolValid = /^[A-Za-z]+$/.test(formData.symbol);
+    const quantity = Number(formData.quantity);
+    const price = Number(formData.price);
+    if (isSymbolValid && quantity > 0 && price > 0) {
       onAddTransaction({
         symbol: formData.symbol.toUpperCase(),
         type: formData.type,
-        quantity: Number(formData.quantity),
-        price: Number(formData.price),
+        quantity,
+        price,
         date: formData.date,
         fees: formData.fees ? Number(formData.fees) : 0
       });
@@ -35,6 +38,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAddTransacti
         date: new Date().toISOString().split('T')[0],
         fees: ''
       });
+    } else {
+      alert('Veuillez saisir un symbole, une quantité et un prix valides.');
     }
   };
 
@@ -56,6 +61,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAddTransacti
             onChange={(e) => setFormData({ ...formData, symbol: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase"
             placeholder="AAPL"
+            pattern="[A-Za-z]+"
             required
           />
         </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart3, TrendingUp } from 'lucide-react';
-import { Transaction } from './types';
+import { Transaction, Position } from './types';
 import { TransactionForm } from './components/TransactionForm';
 import { TransactionList } from './components/TransactionList';
 import { Dashboard } from './components/Dashboard';
@@ -72,7 +72,16 @@ function App() {
     setTransactions(prev => [...prev, transaction]);
   };
 
-  const positions = useMemo(() => calculatePositions(transactions), [transactions]);
+  const [positions, setPositions] = useState<Position[]>([]);
+
+  useEffect(() => {
+    const loadPositions = async () => {
+      const pos = await calculatePositions(transactions);
+      setPositions(pos);
+    };
+    loadPositions();
+  }, [transactions]);
+
   const metrics = useMemo(() => calculatePortfolioMetrics(positions, transactions), [positions, transactions]);
 
   return (
@@ -111,7 +120,7 @@ function App() {
         <footer className="mt-12 text-center text-gray-500 text-sm">
           <div className="flex items-center justify-center mb-2">
             <BarChart3 size={16} className="mr-1" />
-            <span>Les prix actuels sont simulés pour la démonstration</span>
+            <span>Les prix sont récupérés via l'API Alpha Vantage</span>
           </div>
           <p>Développé avec React et TypeScript • Design moderne et responsive</p>
         </footer>
