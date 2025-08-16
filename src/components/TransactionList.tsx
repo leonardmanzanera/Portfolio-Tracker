@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ArrowUpDown, Calendar, DollarSign } from 'lucide-react';
 import { Transaction } from '../types';
 import { formatCurrency } from '../utils/calculations';
@@ -8,21 +8,30 @@ interface TransactionListProps {
 }
 
 export const TransactionList: React.FC<TransactionListProps> = ({ transactions }) => {
-  const [sortField, setSortField] = useState<keyof Transaction>('date');
+  const sortableFields: Array<keyof Transaction> = ['date', 'symbol', 'type', 'quantity', 'price'];
+  const [sortField, setSortField] = useState<typeof sortableFields[number]>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  const sortedTransactions = [...transactions].sort((a, b) => {
-    const aValue = a[sortField];
-    const bValue = b[sortField];
-    
-    if (sortDirection === 'asc') {
-      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-    } else {
-      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-    }
-  });
+  const sortedTransactions = useMemo(() => {
+    return [...transactions].sort((a, b) => {
+      const field = sortField;
+      if (!sortableFields.includes(field)) return 0;
+      const aValue = a[field];
+      const bValue = b[field];
 
-  const handleSort = (field: keyof Transaction) => {
+      let comparison = 0;
+      if (field === 'date') {
+        comparison = new Date(aValue as string).getTime() - new Date(bValue as string).getTime();
+      } else if (typeof aValue === 'string' && typeof bValue === 'string') {
+        comparison = aValue.localeCompare(bValue);
+      } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+        comparison = aValue - bValue;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [transactions, sortField, sortDirection]);
+
+  const handleSort = (field: typeof sortableFields[number]) => {
     if (field === sortField) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -31,11 +40,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions }
     }
   };
 
-  const getSortIcon = (field: keyof Transaction) => {
+  const getSortIcon = (field: typeof sortableFields[number]) => {
     if (field !== sortField) return <ArrowUpDown size={16} className="text-gray-400" />;
     return (
-      <ArrowUpDown 
-        size={16} 
+      <ArrowUpDown
+        size={16}
         className={`text-blue-600 ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
       />
     );

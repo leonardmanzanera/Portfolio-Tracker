@@ -108,6 +108,21 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onAddTransacti
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
+            Frais (€)
+          </label>
+          <input
+            type="number"
+            value={formData.fees}
+            onChange={(e) => setFormData({ ...formData, fees: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="1.00"
+            min="0"
+            step="0.01"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Date
           </label>
           <input

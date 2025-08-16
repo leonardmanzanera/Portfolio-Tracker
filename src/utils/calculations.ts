@@ -65,23 +65,52 @@ export const calculatePortfolioMetrics = (positions: Position[], transactions: T
   const totalValue = positions.reduce((sum, pos) => sum + pos.currentValue, 0);
   const totalInvested = positions.reduce((sum, pos) => sum + pos.totalInvested, 0);
   const unrealizedPnL = positions.reduce((sum, pos) => sum + pos.unrealizedPnL, 0);
-  
-  // Calculer les P&L réalisés
-  const soldPositions = new Map<string, { totalSold: number; totalCost: number }>();
-  transactions.forEach(transaction => {
-    const key = transaction.symbol.toUpperCase();
-    if (transaction.type === 'sell') {
-      if (!soldPositions.has(key)) {
-        soldPositions.set(key, { totalSold: 0, totalCost: 0 });
+
+  // Calculer les P&L réalisés avec une approche FIFO.
+  // Pour chaque symbole, on conserve une file de lots d'achat.
+  // Lors d'une vente, on retire des lots jusqu'à épuisement de la quantité
+  // vendue afin de déterminer le coût d'acquisition réel.
+  const lots = new Map<string, { quantity: number; costPerShare: number }[]>();
+  let realizedPnL = 0;
+
+  // S'assurer que les transactions sont traitées dans l'ordre chronologique
+  const ordered = [...transactions].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  ordered.forEach(tx => {
+    const symbol = tx.symbol.toUpperCase();
+    if (!lots.has(symbol)) {
+      lots.set(symbol, []);
+    }
+    const symbolLots = lots.get(symbol)!;
+
+    if (tx.type === 'buy') {
+      // Stocker le coût par action incluant les frais
+      const costPerShare =
+        (tx.price * tx.quantity + (tx.fees || 0)) / tx.quantity;
+      symbolLots.push({ quantity: tx.quantity, costPerShare });
+    } else {
+      let remaining = tx.quantity;
+      let totalCost = 0;
+      // Retirer les actions de la file FIFO pour calculer le coût d'acquisition
+      while (remaining > 0 && symbolLots.length > 0) {
+        const lot = symbolLots[0];
+        const used = Math.min(remaining, lot.quantity);
+        totalCost += used * lot.costPerShare;
+        lot.quantity -= used;
+        remaining -= used;
+        if (lot.quantity === 0) {
+          symbolLots.shift();
+        }
       }
-      const sold = soldPositions.get(key)!;
-      sold.totalSold += transaction.quantity * transaction.price - (transaction.fees || 0);
-      sold.totalCost += transaction.quantity * transaction.price; // Prix de vente approximatif pour le coût
+      const proceeds = tx.price * tx.quantity - (tx.fees || 0);
+      realizedPnL += proceeds - totalCost;
     }
   });
 
-  const realizedPnL = Array.from(soldPositions.values())
-    .reduce((sum, { totalSold, totalCost }) => sum + (totalSold - totalCost), 0);
+  // Exemple:
+  // Achat 10@100€, achat 10@120€, vente 15@130€ avec 1€ de frais => PnL réalisé 349€
 
   const totalPnL = realizedPnL + unrealizedPnL;
   const totalPnLPercent = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
