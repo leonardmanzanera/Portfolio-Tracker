@@ -1,22 +1,22 @@
 import { Transaction, Position, PortfolioMetrics } from '../types';
 
-// Prix simulés pour la démo (dans une vraie app, on utiliserait une API)
-const mockPrices: Record<string, number> = {
-  'AAPL': 175.50,
-  'MSFT': 385.20,
-  'GOOGL': 142.80,
-  'TSLA': 248.90,
-  'AMZN': 151.20,
-  'NVDA': 875.30,
-  'META': 485.60,
-  'NFLX': 445.20
+// Récupère le prix courant via l'API Alpha Vantage (clé "demo")
+export const getCurrentPrice = async (symbol: string): Promise<number> => {
+  try {
+    const res = await fetch(
+      `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=demo`
+    );
+    const data = await res.json();
+    const price = parseFloat(data['Global Quote']['05. price']);
+    return isNaN(price) ? 0 : price;
+  } catch {
+    return 0;
+  }
 };
 
-export const getCurrentPrice = (symbol: string): number => {
-  return mockPrices[symbol.toUpperCase()] || 100;
-};
-
-export const calculatePositions = (transactions: Transaction[]): Position[] => {
+export const calculatePositions = async (
+  transactions: Transaction[]
+): Promise<Position[]> => {
   const positionMap = new Map<string, { quantity: number; totalInvested: number; transactions: Transaction[] }>();
 
   // Regrouper les transactions par symbole
@@ -39,10 +39,13 @@ export const calculatePositions = (transactions: Transaction[]): Position[] => {
   });
 
   // Calculer les métriques pour chaque position
-  return Array.from(positionMap.entries())
-    .filter(([, data]) => data.quantity > 0)
-    .map(([symbol, data]) => {
-      const currentPrice = getCurrentPrice(symbol);
+  const entries = Array.from(positionMap.entries()).filter(
+    ([, data]) => data.quantity > 0
+  );
+
+  return Promise.all(
+    entries.map(async ([symbol, data]) => {
+      const currentPrice = await getCurrentPrice(symbol);
       const averagePrice = data.totalInvested / data.quantity;
       const currentValue = data.quantity * currentPrice;
       const unrealizedPnL = currentValue - data.totalInvested;
@@ -58,7 +61,8 @@ export const calculatePositions = (transactions: Transaction[]): Position[] => {
         unrealizedPnL,
         unrealizedPnLPercent
       };
-    });
+    })
+  );
 };
 
 export const calculatePortfolioMetrics = (positions: Position[], transactions: Transaction[]): PortfolioMetrics => {

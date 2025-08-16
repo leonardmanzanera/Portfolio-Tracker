@@ -14,7 +14,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({ positions }) => 
       <h3 className="text-xl font-bold text-gray-800 mb-6">Répartition du Portefeuille</h3>
       
       <div className="space-y-4">
-        {positions.map((position, index) => {
+        {positions.map((position) => {
           const percentage = (position.currentValue / totalValue) * 100;
           const isProfit = position.unrealizedPnL >= 0;
           

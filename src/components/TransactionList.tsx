@@ -7,8 +7,15 @@ interface TransactionListProps {
   transactions: Transaction[];
 }
 
+const sortableFields: Array<keyof Transaction> = [
+  'date',
+  'symbol',
+  'type',
+  'quantity',
+  'price'
+];
+
 export const TransactionList: React.FC<TransactionListProps> = ({ transactions }) => {
-  const sortableFields: Array<keyof Transaction> = ['date', 'symbol', 'type', 'quantity', 'price'];
   const [sortField, setSortField] = useState<typeof sortableFields[number]>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
