@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart3, TrendingUp } from 'lucide-react';
 import { Transaction } from './types';
 import { TransactionForm } from './components/TransactionForm';
@@ -69,11 +69,11 @@ function App() {
       ...newTransaction,
       id: Date.now().toString()
     };
-    setTransactions([...transactions, transaction]);
+    setTransactions(prev => [...prev, transaction]);
   };
 
-  const positions = calculatePositions(transactions);
-  const metrics = calculatePortfolioMetrics(positions, transactions);
+  const positions = useMemo(() => calculatePositions(transactions), [transactions]);
+  const metrics = useMemo(() => calculatePortfolioMetrics(positions, transactions), [positions, transactions]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
